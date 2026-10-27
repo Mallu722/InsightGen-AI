@@ -1,0 +1,21 @@
+transaction_id,date,region,rep_name,product_category,units_sold,unit_price,discount,total_revenue,customer_segment
+TXN-1001,2026-01-05,North,Sarah Jenkins,Electronics,12,350.00,0.05,3990.00,Enterprise
+TXN-1002,2026-01-07,South,Rajesh Kumar,Office Supplies,45,22.50,0.00,1012.50,SMB
+TXN-1003,2026-01-08,West,Elena Rostova,Furniture,8,420.00,0.10,3024.00,Enterprise
+TXN-1004,2026-01-10,East,Michael Chen,Electronics,25,180.00,0.00,4500.00,Consumer
+TXN-1005,2026-01-12,North,Sarah Jenkins,Furniture,5,750.00,0.15,3187.50,Enterprise
+TXN-1006,2026-01-15,West,Elena Rostova,Electronics,30,95.00,0.00,2850.00,SMB
+TXN-1007,2026-01-18,South,Rajesh Kumar,Electronics,15,350.00,0.05,4987.50,Enterprise
+TXN-1008,2026-01-20,East,Michael Chen,Office Supplies,120,15.00,0.10,1620.00,Consumer
+TXN-1009,2026-01-22,North,Sarah Jenkins,Office Supplies,80,18.00,0.00,1440.00,SMB
+TXN-1010,2026-01-25,West,Elena Rostova,Office Supplies,60,25.00,0.05,1425.00,SMB
+TXN-1011,2026-01-28,East,Michael Chen,Furniture,14,290.00,0.08,3735.20,Enterprise
+TXN-1012,2026-02-01,South,Rajesh Kumar,Furniture,6,820.00,0.12,4329.60,Enterprise
+TXN-1013,2026-02-03,North,Sarah Jenkins,Electronics,18,410.00,0.00,7380.00,Enterprise
+TXN-1014,2026-02-05,West,Elena Rostova,Electronics,22,210.00,0.05,4389.00,Consumer
+TXN-1015,2026-02-08,East,Michael Chen,Office Supplies,95,14.50,0.00,1377.50,SMB
+TXN-1016,2026-02-12,South,Rajesh Kumar,Electronics,8,640.00,0.10,4608.00,Enterprise
+TXN-1017,2026-02-15,North,Sarah Jenkins,Furniture,11,380.00,0.05,3971.00,SMB
+TXN-1018,2026-02-18,West,Elena Rostova,Furniture,7,550.00,0.15,3272.50,Consumer
+TXN-1019,2026-02-22,East,Michael Chen,Electronics,40,120.00,0.00,4800.00,Enterprise
+TXN-1020,2026-02-26,South,Rajesh Kumar,Office Supplies,110,12.00,0.00,1320.00,Consumer
