@@ -89,10 +89,24 @@ export interface AnalysisResponse {
   evidence: AnalysisEvidence;
 }
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+export function getBackendUrl(): string {
+  if (typeof window !== "undefined") {
+    const custom = localStorage.getItem("INSIGHTGEN_BACKEND_URL");
+    if (custom && custom.trim()) {
+      return custom.trim().replace(/\/+$/, "");
+    }
+  }
+  if (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim()) {
+    return process.env.NEXT_PUBLIC_API_URL.trim().replace(/\/+$/, "");
+  }
+  if (typeof window !== "undefined" && window.location.hostname.includes("vercel.app")) {
+    return "https://insightgen-ai-1.onrender.com";
+  }
+  return "http://127.0.0.1:8000";
+}
 
 export async function fetchBackendHealth(): Promise<HealthCheckResponse> {
-  const response = await fetch(`${BACKEND_URL}/health`, {
+  const response = await fetch(`${getBackendUrl()}/health`, {
     cache: "no-store",
   });
   if (!response.ok) {
@@ -105,7 +119,7 @@ export async function uploadDataset(file: File): Promise<DatasetUploadResponse> 
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${BACKEND_URL}/api/datasets/upload`, {
+  const response = await fetch(`${getBackendUrl()}/api/datasets/upload`, {
     method: "POST",
     body: formData,
   });
@@ -118,7 +132,7 @@ export async function uploadDataset(file: File): Promise<DatasetUploadResponse> 
 }
 
 export async function fetchDatasetProfile(datasetId: string): Promise<DatasetProfileResponse> {
-  const response = await fetch(`${BACKEND_URL}/api/datasets/${datasetId}/profile`, {
+  const response = await fetch(`${getBackendUrl()}/api/datasets/${datasetId}/profile`, {
     cache: "no-store",
   });
   const data = await response.json();
@@ -129,7 +143,7 @@ export async function fetchDatasetProfile(datasetId: string): Promise<DatasetPro
 }
 
 export async function deleteDataset(datasetId: string): Promise<{ success: boolean; message: string }> {
-  const response = await fetch(`${BACKEND_URL}/api/datasets/${datasetId}`, {
+  const response = await fetch(`${getBackendUrl()}/api/datasets/${datasetId}`, {
     method: "DELETE",
   });
   const data = await response.json();
@@ -151,7 +165,7 @@ export async function executeAnalysisQuery(datasetId: string, question: string):
     }
   }
 
-  const response = await fetch(`${BACKEND_URL}/api/analysis/query`, {
+  const response = await fetch(`${getBackendUrl()}/api/analysis/query`, {
     method: "POST",
     headers,
     body: JSON.stringify({

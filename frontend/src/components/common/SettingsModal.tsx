@@ -11,18 +11,26 @@ interface SettingsModalProps {
 
 export default function SettingsModal({ isOpen, onClose, onSaveKey }: SettingsModalProps) {
   const [apiKey, setApiKey] = useState<string>("");
+  const [backendUrl, setBackendUrl] = useState<string>("");
   const [model, setModel] = useState<string>("gemini-3.8-flash");
   const [saved, setSaved] = useState<boolean>(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("INSIGHTGEN_GEMINI_KEY") || "";
+    const storedUrl = localStorage.getItem("INSIGHTGEN_BACKEND_URL") || "";
     setApiKey(stored);
+    setBackendUrl(storedUrl);
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleSave = () => {
     localStorage.setItem("INSIGHTGEN_GEMINI_KEY", apiKey.trim());
+    if (backendUrl.trim()) {
+      localStorage.setItem("INSIGHTGEN_BACKEND_URL", backendUrl.trim().replace(/\/+$/, ""));
+    } else {
+      localStorage.removeItem("INSIGHTGEN_BACKEND_URL");
+    }
     onSaveKey(apiKey.trim());
     setSaved(true);
     setTimeout(() => {
@@ -92,6 +100,22 @@ export default function SettingsModal({ isOpen, onClose, onSaveKey }: SettingsMo
               <option value="gemini-1.5-pro">gemini-1.5-pro (Deep Reasoning & Long Context)</option>
               <option value="gemini-1.5-flash">gemini-1.5-flash (Standard)</option>
             </select>
+          </div>
+
+          <div>
+            <label className="font-semibold text-slate-200 block mb-1.5">
+              Backend Server URL
+            </label>
+            <input
+              type="text"
+              value={backendUrl}
+              onChange={(e) => setBackendUrl(e.target.value)}
+              placeholder="https://insightgen-ai-1.onrender.com"
+              className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3.5 py-2.5 text-slate-200 placeholder-slate-600 focus:border-brand-500 focus:outline-none font-mono text-xs"
+            />
+            <p className="text-[11px] text-slate-500 mt-1">
+              Leave blank to auto-detect backend based on environment.
+            </p>
           </div>
 
           <div className="rounded-xl border border-indigo-500/20 bg-indigo-950/20 p-3.5 flex items-start gap-2.5 text-indigo-300">

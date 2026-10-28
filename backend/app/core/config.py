@@ -19,7 +19,11 @@ class Settings(BaseSettings):
     BACKEND_PORT: int = 8000
 
     # Cross-Origin Resource Sharing (CORS)
-    CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    CORS_ORIGINS: Union[List[str], str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://insight-gen-ai-wb3d.vercel.app",
+    ]
 
     # Google Gemini Settings
     GEMINI_API_KEY: str = ""
