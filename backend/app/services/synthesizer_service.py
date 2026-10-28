@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from app.core.config import settings
 from app.schemas.analysis import AnalysisEvidence, AnalysisPlan
 

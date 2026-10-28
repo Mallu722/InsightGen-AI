@@ -1,5 +1,5 @@
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
 from app.schemas.analysis import AnalysisEvidence, AnalysisPlan, ChartConfig
 from app.services.profiling_service import round_val
