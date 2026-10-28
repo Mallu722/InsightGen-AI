@@ -20,7 +20,14 @@ class PlannerService:
     ) -> AnalysisPlan:
         """
         Creates an AnalysisPlan from question and available schema metadata.
+        Deterministic intents (greetings, dataset info) are classified locally
+        BEFORE calling the LLM to prevent unreliable Gemini responses.
         """
+        # ── Deterministic intent detection FIRST (never send to LLM) ──
+        deterministic_plan = self._classify_deterministic_intent(question, columns_metadata)
+        if deterministic_plan is not None:
+            return deterministic_plan
+
         if settings.ENVIRONMENT.lower() in ("test", "testing"):
             return self._plan_with_semantic_rules(question, columns_metadata)
 
@@ -40,6 +47,70 @@ class PlannerService:
                 pass
 
         return self._plan_with_semantic_rules(question, columns_metadata)
+
+    def _classify_deterministic_intent(
+        self,
+        question: str,
+        columns_metadata: List[Dict[str, str]],
+    ) -> Optional[AnalysisPlan]:
+        """
+        Detects greetings, chit-chat, and dataset schema questions deterministically.
+        Returns an AnalysisPlan for these intents, or None if the question requires LLM planning.
+        This runs BEFORE any LLM call to guarantee deterministic behavior.
+        """
+        q_lower = question.lower().strip()
+        q_clean = re.sub(r"[^\w\s]", "", q_lower).strip()
+        tokens = set(re.findall(r"\b[a-z0-9]+\b", q_lower))
+
+        # ── 1. Greeting / Chit-chat ──
+        GREETING_PHRASES = {
+            "hi", "hello", "hey", "hola", "sup", "greetings", "howdy",
+            "good morning", "good afternoon", "good evening", "good day",
+            "who are you", "what are you", "what can you do", "help",
+            "thanks", "thank you", "thx", "bye", "goodbye", "see you",
+            "yo", "hii", "hiii", "namaste", "bonjour",
+        }
+        # Match full phrase OR short token overlap
+        if q_clean in GREETING_PHRASES or (len(tokens) <= 3 and any(w in GREETING_PHRASES for w in tokens)):
+            return AnalysisPlan(
+                intent="greeting",
+                operation="conversational_response",
+                group_by_columns=[],
+                metric_column=None,
+                aggregation_function="none",
+                sort_order="desc",
+                limit=0,
+                recommended_chart="none",
+                chart_title="Assistant Response",
+            )
+
+        # ── 2. Dataset Overview & Schema Q&A ──
+        SCHEMA_KEYWORDS = [
+            "what column", "list column", "show column", "columns", "all columns",
+            "schema", "fields", "what are the features", "attributes",
+            "how many rows", "row count", "how many records", "number of rows",
+            "dataset size", "how big",
+            "what is this dataset", "about this dataset", "tell me about this dataset",
+            "dataset summary", "describe dataset", "overview",
+            "what does this data contain",
+            "data quality", "missing values", "null values", "nulls",
+            "duplicates", "summary of data",
+        ]
+        if any(kw in q_lower for kw in SCHEMA_KEYWORDS):
+            return AnalysisPlan(
+                intent="dataset_info",
+                operation="schema_inspection",
+                group_by_columns=[],
+                metric_column=None,
+                aggregation_function="none",
+                sort_order="desc",
+                limit=0,
+                recommended_chart="none",
+                chart_title="Dataset Profile & Overview",
+            )
+
+        # Not a deterministic intent — needs LLM planning
+        return None
 
     def _plan_with_gemini(
         self,
