@@ -119,3 +119,84 @@ def test_upload_real_sample_sales_dataset():
     assert columns["total_revenue"]["dtype"] == "numeric"
     assert columns["region"]["dtype"] == "categorical"
     assert columns["region"]["unique_count"] == 4
+
+def test_upload_valid_excel_workbook():
+    """
+    Test uploading a valid Excel (.xlsx) workbook and obtaining profile metrics.
+    """
+    import pandas as pd
+    df = pd.DataFrame({
+        "item": ["Widget A", "Widget B", "Widget C"],
+        "cost": [10.5, 20.0, 35.75],
+        "in_stock": [True, True, False]
+    })
+    excel_buffer = io.BytesIO()
+    df.to_excel(excel_buffer, index=False, engine="openpyxl")
+    excel_buffer.seek(0)
+
+    files = {
+        "file": ("test_catalog.xlsx", excel_buffer, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    }
+    response = client.post("/api/datasets/upload", files=files)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["profile"]["metadata"]["row_count"] == 3
+    assert data["profile"]["metadata"]["column_count"] == 3
+
+def test_upload_renamed_executable_binary_rejected():
+    """
+    Verify security check against executable files renamed to .csv.
+    """
+    fake_exe_content = b"MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00\xff\xff\x00\x00"
+    files = {
+        "file": ("trojan.csv", io.BytesIO(fake_exe_content), "text/csv")
+    }
+    response = client.post("/api/datasets/upload", files=files)
+    assert response.status_code == 400
+    assert "Executable binary" in response.json()["detail"]
+
+def test_delete_dataset_and_cleanup_disk():
+    """
+    Verify DELETE /api/datasets/{id} removes the file from disk and metadata index.
+    """
+    csv_content = "code,score\nA1,95\nA2,88\n"
+    files = {
+        "file": ("to_delete.csv", io.BytesIO(csv_content.encode("utf-8")), "text/csv")
+    }
+    upload_res = client.post("/api/datasets/upload", files=files)
+    assert upload_res.status_code == 201
+    dataset_id = upload_res.json()["profile"]["metadata"]["dataset_id"]
+
+    # Verify deletion
+    del_res = client.delete(f"/api/datasets/{dataset_id}")
+    assert del_res.status_code == 200
+    assert del_res.json()["success"] is True
+
+    # Profile lookup should now return 404
+    get_res = client.get(f"/api/datasets/{dataset_id}/profile")
+    assert get_res.status_code == 404
+
+def test_duplicates_and_missing_values_detection():
+    """
+    Verify exact computation of duplicate rows and null percentages.
+    """
+    csv_content = (
+        "id,val\n"
+        "1,100\n"
+        "2,\n"
+        "1,100\n"
+        "1,100\n"
+    )
+    files = {
+        "file": ("dupes.csv", io.BytesIO(csv_content.encode("utf-8")), "text/csv")
+    }
+    res = client.post("/api/datasets/upload", files=files)
+    assert res.status_code == 201
+    meta = res.json()["profile"]["metadata"]
+    assert meta["row_count"] == 4
+    assert meta["duplicate_rows"] == 2  # rows 3 and 4 are exact duplicates of row 1
+
+    col_val = [c for c in res.json()["profile"]["columns"] if c["name"] == "val"][0]
+    assert col_val["null_count"] == 1
+    assert col_val["null_percentage"] == 25.0
+

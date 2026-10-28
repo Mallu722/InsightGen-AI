@@ -79,7 +79,7 @@ npm run dev
 
 ---
 
-## 📅 2-Day Milestone Progress
+## 📅 Milestone Roadmap Progress
 - [x] **Day 1: Project Foundation & Architecture**
   - [x] High-Level Design (HLD) & Low-Level Design (LLD) Blueprint
   - [x] Modular folder structure established
@@ -91,9 +91,21 @@ npm run dev
   - [x] File validation (extensions, MIME, size, encoding, path traversal defense)
   - [x] Pandas profiling service (row/column count, nulls, duplicates, descriptive stats, data types)
   - [x] Frontend preview table & data health summary card with bundled sample data loader
-  - [x] Comprehensive automated test suite (`pytest backend/tests/test_datasets.py` - 8/8 passed)
-- [ ] **Next Steps (Day 3+): Agentic AI & Deterministic Analytics Engine**
-  - [ ] Google Gemini API integration (structured analysis plans)
-  - [ ] QueryValidator security layer (safe AST & SQL checking)
-  - [ ] Pandas deterministic calculation execution engine
-  - [ ] Interactive Plotly visualizations & PDF business reporting
+- [x] **Milestone A: Hardened Upload & Profiling Workflow**
+  - [x] Executable magic byte inspection (blocks fake `.csv` with `MZ` or binary nulls)
+  - [x] Excel (.xlsx) OpenXML archive validation and engine support
+  - [x] Dataset deletion endpoint (`DELETE /api/datasets/{id}`) with physical file cleanup
+  - [x] Deterministic rounding consistency (`round_val` with ROUND_HALF_UP)
+- [x] **Milestone B: First Gemini-Powered Analysis Workflow**
+  - [x] Natural language analytical query endpoint (`POST /api/analysis/query`)
+  - [x] Schema-aware AI planning (`PlannerService` with Gemini SDK + semantic fallback)
+  - [x] Plan and operation security validator (`ValidatorService`)
+  - [x] Trusted deterministic computation engine (`ExecutorService` via Pandas)
+  - [x] Zero-hallucination result synthesizer (`SynthesizerService`)
+  - [x] Frontend conversational data scientist box with suggested queries, verified answer cards, evidence ribbons, and dynamic charts
+  - [x] Full automated test suite passing 100% (`15/15 passed in pytest`)
+- [ ] **Next Steps (Phase 4+): Advanced Analytics, Persistence & ML**
+  - [ ] Multi-turn conversational context & chat history
+  - [ ] PostgreSQL persistence for users and saved analyses
+  - [ ] Scikit-learn anomaly detection & time-series forecasting
+  - [ ] PDF business report generation service

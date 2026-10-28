@@ -17,7 +17,7 @@ class DatasetService:
     """
 
     def __init__(self, upload_dir: Optional[str] = None):
-        self.upload_dir = Path(upload_dir or settings.UPLOAD_DIR)
+        self.upload_dir = Path(upload_dir or settings.UPLOAD_DIR).resolve()
         self.upload_dir.mkdir(parents=True, exist_ok=True)
         self.metadata_store_file = self.upload_dir / "datasets_index.json"
         self._ensure_index_file()
@@ -126,6 +126,47 @@ class DatasetService:
                 detail="The uploaded file is empty (0 bytes). Please upload a valid CSV or Excel file."
             )
 
+        # Validate content header to prevent renamed executables or corrupted binaries
+        try:
+            with open(target_path, "rb") as check_f:
+                header_bytes = check_f.read(512)
+
+            if ext == ".csv":
+                # Check for executable magic numbers (MZ for Windows EXE/DLL, \x7fELF for Linux)
+                if header_bytes.startswith(b"MZ") or header_bytes.startswith(b"\x7fELF"):
+                    if target_path.exists():
+                        target_path.unlink()
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Executable binary files cannot be uploaded as CSV."
+                    )
+                # Check for binary null bytes
+                if b"\x00" in header_bytes:
+                    if target_path.exists():
+                        target_path.unlink()
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="The uploaded CSV file contains invalid binary content."
+                    )
+            elif ext == ".xlsx":
+                # Valid OpenXML Excel files must be zip archives starting with 'PK' (b"PK\x03\x04")
+                if not header_bytes.startswith(b"PK"):
+                    if target_path.exists():
+                        target_path.unlink()
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="The uploaded file is not a valid Excel (.xlsx) workbook."
+                    )
+        except HTTPException:
+            raise
+        except Exception as e:
+            if target_path.exists():
+                target_path.unlink()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to inspect file integrity: {str(e)}"
+            )
+
         return dataset_id, clean_filename, file_size, str(target_path)
 
     def load_dataframe(self, file_path: str) -> pd.DataFrame:
@@ -182,6 +223,33 @@ class DatasetService:
         df.columns = [str(c).strip() for c in df.columns]
         return df
 
+    def delete_dataset(self, dataset_id: str) -> bool:
+        """
+        Deletes a dataset by its ID, cleaning up the physical file on disk and removing
+        its entry from the index.
+        """
+        index = self._load_index()
+        if dataset_id not in index:
+            return False
+
+        meta = index[dataset_id]
+        file_path_str = meta.get("file_path")
+        if file_path_str:
+            file_path = Path(file_path_str)
+            if not file_path.is_absolute() or not file_path.exists():
+                candidate = self.upload_dir / file_path.name
+                if candidate.exists():
+                    file_path = candidate
+            if file_path.exists():
+                try:
+                    file_path.unlink()
+                except Exception:
+                    pass
+
+        del index[dataset_id]
+        self._save_index(index)
+        return True
+
     def register_dataset_metadata(self, dataset_id: str, metadata: dict):
         index = self._load_index()
         index[dataset_id] = metadata
@@ -195,3 +263,4 @@ class DatasetService:
         return self._load_index()
 
 dataset_service = DatasetService()
+

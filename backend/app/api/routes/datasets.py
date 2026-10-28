@@ -106,3 +106,29 @@ async def list_datasets() -> List[dict]:
     """
     raw_dict = dataset_service.list_datasets()
     return list(raw_dict.values())
+
+@router.delete(
+    "/{dataset_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Delete a dataset",
+    description="Deletes dataset physical file from storage and clears metadata record."
+)
+async def delete_dataset(dataset_id: str) -> dict:
+    """
+    Delete dataset and clean up cached profile and storage file.
+    """
+    if dataset_id in _profile_cache:
+        del _profile_cache[dataset_id]
+
+    deleted = dataset_service.delete_dataset(dataset_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Dataset with ID '{dataset_id}' not found."
+        )
+
+    return {
+        "success": True,
+        "message": f"Dataset '{dataset_id}' successfully deleted and storage cleaned up."
+    }
+

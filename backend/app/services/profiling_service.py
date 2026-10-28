@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import math
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
@@ -9,6 +10,18 @@ from app.schemas.dataset import (
     DatasetProfileResponse,
     NumericStats,
 )
+
+def round_val(val: float, decimals: int = 4) -> float:
+    """
+    Rounds floating-point numbers deterministically using ROUND_HALF_UP (standard arithmetic/financial rounding)
+    to prevent IEEE-754 banker's rounding discrepancies.
+    """
+    try:
+        d = Decimal(str(round(val, 8)))
+        return float(d.quantize(Decimal(10) ** -decimals, rounding=ROUND_HALF_UP))
+    except Exception:
+        return round(val, decimals)
+
 
 class ProfilingService:
     """
@@ -79,13 +92,13 @@ class ProfilingService:
                     std_val = 0.0
 
                 numeric_stats = NumericStats(
-                    mean=round(float(clean_series.mean()), 4),
-                    std=round(std_val, 4),
-                    min=round(float(clean_series.min()), 4),
-                    q25=round(float(clean_series.quantile(0.25)), 4),
-                    median=round(float(clean_series.median()), 4),
-                    q75=round(float(clean_series.quantile(0.75)), 4),
-                    max=round(float(clean_series.max()), 4),
+                    mean=round_val(float(clean_series.mean()), 4),
+                    std=round_val(std_val, 4),
+                    min=round_val(float(clean_series.min()), 4),
+                    q25=round_val(float(clean_series.quantile(0.25)), 4),
+                    median=round_val(float(clean_series.median()), 4),
+                    q75=round_val(float(clean_series.quantile(0.75)), 4),
+                    max=round_val(float(clean_series.max()), 4),
                 )
 
         return ColumnProfile(

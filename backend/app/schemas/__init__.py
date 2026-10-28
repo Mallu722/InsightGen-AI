@@ -6,6 +6,13 @@ from app.schemas.dataset import (
     DatasetUploadResponse,
     NumericStats,
 )
+from app.schemas.analysis import (
+    AnalysisRequest,
+    AnalysisPlan,
+    AnalysisEvidence,
+    ChartConfig,
+    AnalysisResponse,
+)
 
 __all__ = [
     "HealthResponse",
@@ -14,4 +21,9 @@ __all__ = [
     "DatasetProfileResponse",
     "DatasetUploadResponse",
     "NumericStats",
+    "AnalysisRequest",
+    "AnalysisPlan",
+    "AnalysisEvidence",
+    "ChartConfig",
+    "AnalysisResponse",
 ]

@@ -13,6 +13,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" async></script>
+      </head>
       <body className="antialiased selection:bg-brand-500 selection:text-white">
         {children}
       </body>

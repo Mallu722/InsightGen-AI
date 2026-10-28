@@ -11,8 +11,24 @@ import {
   FileCheck2, 
   BarChart3, 
   AlertTriangle,
-  Info
+  Info,
+  PieChart as PieChartIcon,
+  TrendingUp,
+  Sparkles
 } from "lucide-react";
+import { 
+  ResponsiveContainer, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  Legend 
+} from "recharts";
 import { DatasetProfileResponse, ColumnProfile } from "@/lib/api";
 
 interface DatasetProfileViewProps {
@@ -20,7 +36,7 @@ interface DatasetProfileViewProps {
 }
 
 export default function DatasetProfileView({ profile }: DatasetProfileViewProps) {
-  const [activeTab, setActiveTab] = useState<"columns" | "preview">("columns");
+  const [activeTab, setActiveTab] = useState<"columns" | "charts" | "preview">("columns");
   const [copiedId, setCopiedId] = useState<boolean>(false);
   const { metadata, columns, preview_rows } = profile;
 
@@ -50,6 +66,46 @@ export default function DatasetProfileView({ profile }: DatasetProfileViewProps)
         return "bg-slate-500/10 text-slate-400 border-slate-500/20";
     }
   };
+
+  // Compute Dtype Breakdown for Donut Chart
+  const typeCounts: Record<string, number> = {};
+  columns.forEach((c) => {
+    const t = c.dtype.charAt(0).toUpperCase() + c.dtype.slice(1);
+    typeCounts[t] = (typeCounts[t] || 0) + 1;
+  });
+  const typeChartData = Object.entries(typeCounts).map(([name, value]) => ({ name, value }));
+
+  const TYPE_COLORS: Record<string, string> = {
+    Numeric: "#3b82f6",
+    Categorical: "#8b5cf6",
+    Datetime: "#10b981",
+    Boolean: "#f59e0b",
+    Text: "#06b6d4",
+    Other: "#64748b"
+  };
+
+  // Extract numeric columns with stats for comparison chart
+  const numericColumns = columns.filter((c) => c.numeric_stats !== null);
+  const numericComparisonData = numericColumns.map((c) => ({
+    name: c.name,
+    mean: Number(c.numeric_stats?.mean) || 0,
+    median: Number(c.numeric_stats?.median) || 0,
+    max: Number(c.numeric_stats?.max) || 0,
+  }));
+
+  // Extract top categorical columns and their preview frequency
+  const categoricalColumns = columns.filter((c) => c.dtype.toLowerCase() === "categorical");
+  const categoricalBreakdowns = categoricalColumns.slice(0, 3).map((col) => {
+    const counts: Record<string, number> = {};
+    preview_rows.forEach((r) => {
+      const val = String(r[col.name] ?? "Unknown");
+      counts[val] = (counts[val] || 0) + 1;
+    });
+    const data = Object.entries(counts).map(([name, count]) => ({ name, count }));
+    return { colName: col.name, data };
+  });
+
+  const CHART_PALETTE = ["#3b82f6", "#6366f1", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b"];
 
   return (
     <div className="flex flex-col gap-6">
@@ -123,8 +179,21 @@ export default function DatasetProfileView({ profile }: DatasetProfileViewProps)
           }`}
         >
           <BarChart3 className="w-3.5 h-3.5" />
-          Columns & Data Quality ({columns.length})
+          <span>Columns & Quality ({columns.length})</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab("charts")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition cursor-pointer ${
+            activeTab === "charts"
+              ? "bg-brand-600 text-white shadow-md shadow-brand-500/20"
+              : "text-slate-400 hover:text-white hover:bg-slate-800"
+          }`}
+        >
+          <PieChartIcon className="w-3.5 h-3.5" />
+          <span>Visual Distributions & Charts</span>
+        </button>
+
         <button
           onClick={() => setActiveTab("preview")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition cursor-pointer ${
@@ -134,11 +203,11 @@ export default function DatasetProfileView({ profile }: DatasetProfileViewProps)
           }`}
         >
           <Table className="w-3.5 h-3.5" />
-          Tabular Preview (Top {preview_rows.length} Rows)
+          <span>Tabular Preview (Top {preview_rows.length})</span>
         </button>
       </div>
 
-      {/* Tab Content: Columns & Data Quality */}
+      {/* Tab 1: Columns & Data Quality Table */}
       {activeTab === "columns" && (
         <div className="rounded-xl border border-slate-800 overflow-x-auto bg-slate-950/40">
           <table className="w-full text-left text-xs">
@@ -212,7 +281,110 @@ export default function DatasetProfileView({ profile }: DatasetProfileViewProps)
         </div>
       )}
 
-      {/* Tab Content: Tabular Preview */}
+      {/* Tab 2: Visual Distribution Charts */}
+      {activeTab === "charts" && (
+        <div className="flex flex-col gap-6 animate-fadeIn">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Chart A: Column Data Type Distribution */}
+            <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <PieChartIcon className="w-4 h-4 text-brand-400" />
+                  <h4 className="text-sm font-bold text-white">Schema Type Composition</h4>
+                </div>
+                <span className="text-xs font-mono text-slate-400">{columns.length} Total Columns</span>
+              </div>
+
+              <div className="w-full h-64 min-w-0">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <PieChart>
+                    <RechartsTooltip 
+                      contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", borderRadius: "0.75rem", fontSize: "12px" }}
+                    />
+                    <Pie
+                      data={typeChartData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={5}
+                    >
+                      {typeChartData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={TYPE_COLORS[entry.name] || CHART_PALETTE[index % CHART_PALETTE.length]} 
+                        />
+                      ))}
+                    </Pie>
+                    <Legend 
+                      verticalAlign="bottom" 
+                      height={36} 
+                      formatter={(val) => <span className="text-slate-300 text-xs font-medium ml-1 mr-3">{val}</span>}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Chart B: Numeric Means Comparison */}
+            <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-indigo-400" />
+                  <h4 className="text-sm font-bold text-white">Numeric Columns Mean & Median</h4>
+                </div>
+                <span className="text-xs font-mono text-slate-400">{numericColumns.length} Numeric Metrics</span>
+              </div>
+
+              <div className="w-full h-64 min-w-0">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <BarChart data={numericComparisonData} margin={{ top: 10, right: 20, left: 10, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                    <XAxis dataKey="name" stroke="#64748b" tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                    <YAxis stroke="#64748b" tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                    <RechartsTooltip 
+                      contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", borderRadius: "0.75rem", fontSize: "12px" }}
+                    />
+                    <Legend verticalAlign="bottom" height={36} />
+                    <Bar dataKey="mean" name="Mean (μ)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="median" name="Median" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Categorical Preview Breakdown Cards */}
+          {categoricalBreakdowns.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {categoricalBreakdowns.map((cat, idx) => (
+                <div key={idx} className="p-5 rounded-2xl border border-slate-800 bg-slate-900/50 flex flex-col gap-3">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <span className="text-xs font-bold text-white font-mono">{cat.colName}</span>
+                    <span className="text-[10px] text-slate-400">Sample Frequency</span>
+                  </div>
+                  <div className="w-full h-44 min-w-0">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                      <BarChart data={cat.data} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+                        <XAxis type="number" stroke="#64748b" tick={{ fill: "#94a3b8", fontSize: 10 }} />
+                        <YAxis type="category" dataKey="name" stroke="#64748b" tick={{ fill: "#cbd5e1", fontSize: 11 }} />
+                        <RechartsTooltip 
+                          contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", borderRadius: "0.75rem", fontSize: "11px" }}
+                        />
+                        <Bar dataKey="count" fill={CHART_PALETTE[idx % CHART_PALETTE.length]} radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab 3: Tabular Preview */}
       {activeTab === "preview" && (
         <div className="rounded-xl border border-slate-800 overflow-x-auto bg-slate-950/40">
           <table className="w-full text-left text-xs">

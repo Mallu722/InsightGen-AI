@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.routes.health import router as health_router
 from app.api.routes.datasets import router as datasets_router
+from app.api.routes.analysis import router as analysis_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -11,9 +12,9 @@ async def lifespan(app: FastAPI):
     Application lifecycle manager.
     Runs startup and shutdown hooks cleanly.
     """
-    print(f"🚀 [STARTUP] {settings.APP_NAME} v{settings.APP_VERSION} starting in '{settings.ENVIRONMENT}' mode...")
+    print(f"[STARTUP] {settings.APP_NAME} v{settings.APP_VERSION} starting in '{settings.ENVIRONMENT}' mode...")
     yield
-    print(f"🛑 [SHUTDOWN] {settings.APP_NAME} shutting down gracefully...")
+    print(f"[SHUTDOWN] {settings.APP_NAME} shutting down gracefully...")
 
 def create_application() -> FastAPI:
     """
@@ -43,6 +44,8 @@ def create_application() -> FastAPI:
     app.include_router(health_router)
     # 2. Datasets Ingestion & Profiling
     app.include_router(datasets_router)
+    # 3. Natural Language Analysis
+    app.include_router(analysis_router)
 
     # Root informational route
     @app.get("/", tags=["Root"])
